@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Between the Lines — A Love Story</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --rose:    #c9726b;
+      --blush:   #f7e8e6;
+      --gold:    #c8a96e;
+      --ink:     #2b2026;
+      --mist:    #8f7f8d;
+      --cream:   #fdf6f0;
+      --card-bg: rgba(255,255,255,0.82);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Lato', sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated background ── */
+    .bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: linear-gradient(135deg, #fdf0ed 0%, #f9e8f4 40%, #edf0fd 100%);
+      overflow: hidden;
+    }
+    .petal {
+      position: absolute;
+      width: 10px; height: 10px;
+      border-radius: 50% 0 50% 0;
+      opacity: 0;
+      animation: fall linear infinite;
+    }
+    @keyframes fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 0.7; }
+      100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* ── Layout ── */
+    #app {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    /* ── Scene card ── */
+    .scene {
+      display: none;
+      max-width: 720px;
+      width: 100%;
+      animation: fadeIn 0.7s ease both;
+    }
+    .scene.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(14px);
+      border-radius: 24px;
+      padding: 3rem 3.5rem;
+      box-shadow: 0 8px 48px rgba(180,100,100,0.1), 0 1px 0 rgba(255,255,255,0.9) inset;
+      border: 1px solid rgba(255,255,255,0.6);
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      margin-bottom: 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    .progress-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--mist);
+      white-space: nowrap;
+    }
+    .progress-bar {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--rose), var(--gold));
+      transition: width 0.6s ease;
+    }
+
+    /* ── Chapter tag ── */
+    .chapter-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--rose);
+      background: rgba(201,114,107,0.1);
+      padding: 0.3em 0.8em;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Illustration emoji ── */
+    .scene-art {
+      font-size: 3.8rem;
+      margin-bottom: 1.2rem;
+      display: block;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.08));
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+
+    /* ── Title ── */
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      color: var(--ink);
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+    h2.scene-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      color: var(--ink);
+      line-height: 1.3;
+      margin-bottom: 1.2rem;
+    }
+
+    /* ── Body text ── */
+    .story-text {
+      font-size: 1.05rem;
+      line-height: 1.9;
+      color: #4a3e48;
+      margin-bottom: 2rem;
+    }
+    .story-text em {
+      font-style: italic;
+      color: var(--rose);
+    }
+    .story-text p + p { margin-top: 1em; }
+
+    /* ── Choices ── */
+    .choices { display: flex; flex-direction: column; gap: 0.8rem; }
+
+    .choice-btn {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.4rem;
+      background: white;
+      border: 2px solid transparent;
+      border-radius: 14px;
+      cursor: pointer;
+      font-family: 'Lato', sans-serif;
+      font-size: 0.98rem;
+      color: var(--ink);
+      text-align: left;
+      transition: all 0.22s ease;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .choice-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--blush), rgba(200,169,110,0.1));
+      opacity: 0;
+      transition: opacity 0.22s;
+    }
+    .choice-btn:hover::before { opacity: 1; }
+    .choice-btn:hover {
+      border-color: var(--rose);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(201,114,107,0.18);
+    }
+    .choice-btn:active { transform: translateY(0); }
+
+    .choice-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .choice-text { position: relative; z-index: 1; }
+
+    /* ── Ending card ── */
+    .ending-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.35em 0.9em;
+      border-radius: 999px;
+      margin-bottom: 1.2rem;
+    }
+    .ending-badge.happy  { background: #e8f7ee; color: #2d7a52; }
+    .ending-badge.bittersweet { background: #fef3e2; color: #a06c1a; }
+    .ending-badge.tragic { background: #f7e8ea; color: #9b2c3a; }
+    .ending-badge.magical { background: #ede8f7; color: #5c3d9b; }
+
+    /* ── Restart button ── */
+    .restart-btn {
+      margin-top: 2rem;
+      padding: 0.85rem 2rem;
+      background: linear-gradient(135deg, var(--rose), #b85c55);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Lato', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.22s;
+      box-shadow: 0 4px 20px rgba(201,114,107,0.35);
+    }
+    .restart-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(201,114,107,0.45);
+    }
+
+    /* ── Title screen ── */
+    .title-card {
+      text-align: center;
+    }
+    .title-card .subtitle {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      color: var(--mist);
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+    .start-btn {
+      padding: 1rem 2.8rem;
+      background: linear-gradient(135deg, var(--rose), var(--gold));
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      font-style: italic;
+      cursor: pointer;
+      transition: all 0.25s;
+      box-shadow: 0 6px 28px rgba(201,114,107,0.3);
+      letter-spacing: 0.02em;
+    }
+    .start-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 36px rgba(201,114,107,0.4);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--rose), var(--gold));
+      margin: 1.2rem 0;
+      border-radius: 1px;
+    }
+
+    /* ── Stats bar ── */
+    .stats {
+      display: flex;
+      gap: 1.2rem;
+      margin-top: 1.8rem;
+      flex-wrap: wrap;
+    }
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--mist);
+      background: rgba(0,0,0,0.04);
+      padding: 0.3em 0.7em;
+      border-radius: 999px;
+    }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      .card { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-canvas" id="bgCanvas"></div>
+
+<div id="app">
+
+  <!-- ═══════════════════════════════ TITLE ═══════════════════════════════ -->
+  <div class="scene active" id="scene-start">
+    <div class="card title-card">
+      <span class="scene-art">💌</span>
+      <h1>Between the Lines</h1>
+      <p class="subtitle">A story about chance, courage, and the space between hello and forever.</p>
+      <div class="divider" style="margin: 1.5rem auto;"></div>
+      <p class="story-text" style="margin-bottom:2rem;">
+        Some of the greatest love stories begin with the smallest moments — a glance across a room, a borrowed umbrella, a missed train. This is yours to write.
+      </p>
+      <button class="start-btn" onclick="goto('s1')">Begin Your Story →</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════ S1 ═══════════════════════════════ -->
+  <div class="scene" id="scene-s1">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 1</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:10%"></div></div>
+      </div>
+      <span class="chapter-tag">The Coffee Shop</span>
+      <span class="scene-art">☕</span>
+      <h2 class="scene-title">The Stranger in the Corner</h2>
+      <div class="story-text">
+        <p>It's a grey Tuesday in October. Raindrops race each other down the glass of <em>Parchment & Brew</em>, the little café on Aldgate Street where you come every morning to feel like yourself before the world asks you to be someone else.</p>
+        <p>You've just ordered your usual — oat flat white, no sugar — when you notice <em>them</em>.</p>
+        <p>Sitting at the corner table with a battered copy of <em>One Hundred Years of Solitude</em>, hair still damp from the rain, completely unaware of how effortlessly they've stolen all the light in the room.</p>
+        <p>Your order is called. The barista slides your cup across the counter. And then — impossibly — the stranger looks up and meets your eyes.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('s2a')">
+          <span class="choice-icon">😊</span>
+          <span class="choice-text">Smile back and walk over. Life is short.</span>
+        </button>
+        <button class="choice-btn" onclick="goto('s2b')">
+          <span class="choice-icon">📖</span>
+          <span class="choice-text">Look away. Take your usual seat. Maybe fate will do the rest.</span>
+        </button>
+        <button class="choice-btn" onclick="goto('s2c')">
+          <span class="choice-icon">🎵</span>
+          <span class="choice-text">You notice their headphones around their neck. Compliment their music taste instead — it's written on the band tee.</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ PATH A — You approach ═══════ -->
+  <div class="scene" id="scene-s2a">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 2</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:25%"></div></div>
+      </div>
+      <span class="chapter-tag">The Bold Move</span>
+      <span class="scene-art">🌹</span>
+      <h2 class="scene-title">"Is This Seat Taken?"</h2>
+      <div class="story-text">
+        <p>Your heart does something ridiculous. You walk over anyway.</p>
+        <p><em>"Is this seat taken?"</em> you ask, gesturing to the empty chair across from them.</p>
+        <p>They look up from their book — and you see it now: eyes the colour of old amber, warm and surprised and a little amused.</p>
+        <p><em>"It is now,"</em> they say, and close García Márquez like they've been waiting for an interruption just like you.</p>
+        <p>Their name is <strong>Jordan</strong>. They're an architect who reads magical realism to remind themselves that buildings don't have to be boring. They have a laugh that starts slowly and then suddenly fills the whole room.</p>
+        <p>Forty minutes vanish. Your coffee goes cold. You don't notice.</p>
+        <p>Then Jordan's phone buzzes. They glance at it and something shifts behind their eyes — brief, like a cloud passing.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('s3a1')">
+          <span class="choice-icon">📱</span>
+          <span class="choice-text">Ask if everything is okay. You've come this far.</span>
+        </button>
+        <button class="choice-btn" onclick="goto('s3a2')">
+          <span class="choice-icon">🤝</span>
+          <span class="choice-text">Give them space. Exchange numbers and say goodbye gracefully.</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-s3a1">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 3</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:40%"></div></div>
+      </div>
+      <span class="chapter-tag">Into the Rain</span>
+      <span class="scene-art">🌧️</span>
+      <h2 class="scene-title">The Phone Call That Changed Things</h2>
+      <div class="story-text">
+        <p>Jordan looks at you for a moment — measuring, deciding — and then says something you don't expect.</p>
+        <p><em>"My sister is in hospital. She's fine, but... I was supposed to visit her last week and I kept postponing it. I do that. I postpone things."</em></p>
+        <p>There's something unbearably honest about it. You reach across the table — not quite touching — and say: <em>"Then go. I'll still be here tomorrow. Same table."</em></p>
+        <p>Jordan stands, wraps a scarf around their neck. At the door, they turn back.</p>
+        <p><em>"Same table. Seven thirty?"</em></p>
+        <p>You nod. And they walk out into the rain like someone who just made a decision about more than one thing.</p>
+        <p>The next morning, you're at the café at 7:15. Your palms are sweating around your cup. At 7:29, the bell above the door rings.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('end-love')">
+          <span class="choice-icon">💛</span>
+          <span class="choice-text">Jordan walks in with two coffees and a grin. <em>The beginning.</em></span>
+        </button>
+        <button class="choice-btn" onclick="goto('s4a-miss')">
+          <span class="choice-icon">⏱️</span>
+          <span class="choice-text">Wait until 8:15. No Jordan. Your phone buzzes with an unknown number.</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-s3a2">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 3</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:40%"></div></div>
+      </div>
+      <span class="chapter-tag">The Number</span>
+      <span class="scene-art">🗒️</span>
+      <h2 class="scene-title">A Name on a Napkin</h2>
+      <div class="story-text">
+        <p>You give them an easy out. <em>"Sounds like you need to go. It was really nice talking to you."</em></p>
+        <p>Jordan smiles — a slow, grateful smile — and scribbles a number on the corner of their book receipt, tearing it off and sliding it across the table.</p>
+        <p><em>"I'm not usually this easy to talk to,"</em> they say. <em>"That means something. Text me?"</em></p>
+        <p>You sit alone for a while after they leave, turning the receipt over in your fingers. It smells faintly of rain and coffee.</p>
+        <p>That night you stare at your phone. The receipt is on your nightstand.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('s4-text-yes')">
+          <span class="choice-icon">💬</span>
+          <span class="choice-text">You text. <em>"The book. Did Úrsula ever finish building the house?"</em></span>
+        </button>
+        <button class="choice-btn" onclick="goto('s4-text-wait')">
+          <span class="choice-icon">🌙</span>
+          <span class="choice-text">Wait three days. Then text. Then immediately regret the wait.</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-s4-text-yes">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 4</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+      </div>
+      <span class="chapter-tag">First Messages</span>
+      <span class="scene-art">💬</span>
+      <h2 class="scene-title">The Reply</h2>
+      <div class="story-text">
+        <p>Your phone lights up eleven minutes later.</p>
+        <p><em>"She always finishes. That's the tragedy of her."</em></p>
+        <p>Then: <em>"Also hi. I was hoping you'd text."</em></p>
+        <p>You spend the next two weeks sending each other sentences from books you love. Then voice notes. Then a very long phone call that ends at 2am because neither of you will be the first to hang up.</p>
+        <p>You meet again — not at the café, but at a bookshop closing sale where you both independently panic-bought the same obscure French novella. Jordan holds up two copies and laughs that room-filling laugh and something inside you quietly rearranges itself into a new shape.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('end-love')">
+          <span class="choice-icon">🌟</span>
+          <span class="choice-text">You walk out of the bookshop together into the golden afternoon. This is it.</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-s4-text-wait">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 4</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:60%"></div></div>
+      </div>
+      <span class="chapter-tag">Three Days</span>
+      <span class="scene-art">⏳</span>
+      <h2 class="scene-title">Better Late</h2>
+      <div class="story-text">
+        <p>Three days, fourteen hours, and twenty-two minutes after Jordan handed you that receipt, you type: <em>"Hi. Sorry for the delay. I'm someone who overthinks things."</em></p>
+        <p>The reply comes in four seconds.</p>
+        <p><em>"Hi. I'm someone who over-feels things. I think we're going to be a disaster together."</em></p>
+        <p><em>"Or the opposite,"</em> you type.</p>
+        <p><em>"Yes,"</em> they write back. <em>"Exactly the opposite."</em></p>
+        <p>The first date lasts seven hours. You walk the whole city. Jordan points at buildings and tells you secrets about their bones — how the old post office downtown was built to hold the weight of a thousand love letters. <em>That's why it's still standing,</em> they say.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('end-love')">
+          <span class="choice-icon">🏙️</span>
+          <span class="choice-text">You believe them. You are already falling. <em>Epilogue →</em></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ PATH B — You wait ═══════ -->
+  <div class="scene" id="scene-s2b">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 2</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:25%"></div></div>
+      </div>
+      <span class="chapter-tag">The Patient Heart</span>
+      <span class="scene-art">🍂</span>
+      <h2 class="scene-title">Same Café, Different Mornings</h2>
+      <div class="story-text">
+        <p>You look away. Find your usual table by the window. Open your laptop. Tell yourself it's fine.</p>
+        <p>But something makes you come back the next morning. And the morning after that.</p>
+        <p>They're there both days — same corner, different books. García Márquez. Then Toni Morrison. Then a slim volume of Mary Oliver poems.</p>
+        <p>On the fifth day, a new barista mixes up your orders. You get a black coffee. The stranger in the corner gets an oat flat white.</p>
+        <p>They bring it to your table with a crooked grin. <em>"I think this might be yours. Though the black coffee doesn't suit you — you look like someone who likes things a little sweet."</em></p>
+        <p>You blink. <em>"You noticed my order?"</em></p>
+        <p><em>"I notice you every morning,"</em> they say simply. Like it's obvious. Like it isn't the most devastating sentence you've ever heard.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('s3b1')">
+          <span class="choice-icon">🪑</span>
+          <span class="choice-text">"Sit down,"  you say. "Tell me something else you've noticed."</span>
+        </button>
+        <button class="choice-btn" onclick="goto('s3b2')">
+          <span class="choice-icon">😳</span>
+          <span class="choice-text">You're flustered. You say something embarrassingly honest by accident.</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-s3b1">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 3</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:45%"></div></div>
+      </div>
+      <span class="chapter-tag">Morning Rituals</span>
+      <span class="scene-art">🌤️</span>
+      <h2 class="scene-title">The Things Jordan Noticed</h2>
+      <div class="story-text">
+        <p>Jordan sits. Wraps both hands around the cup — your cup — and thinks for a moment.</p>
+        <p><em>"You always read for ten minutes before you open your laptop. You tap your pen three times before you start writing. You look at the rain like you're having a conversation with it."</em></p>
+        <p>A beat. <em>"I'm Jordan, by the way."</em></p>
+        <p>You tell them your name. It sounds different when they say it back — like it fits better somehow.</p>
+        <p>You learn that Jordan is an architect who moved here from elsewhere, knows nobody yet, and has been coming to this café hoping to slowly become a regular. <em>"I thought if I showed up enough, the city would start to feel like mine."</em></p>
+        <p><em>"And does it?"</em> you ask.</p>
+        <p>Jordan looks at you steadily. <em>"It's starting to."</em></p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('end-love')">
+          <span class="choice-icon">☀️</span>
+          <span class="choice-text">That morning becomes the first of many. The slow burn ignites. <em>Epilogue →</em></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-s3b2">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 3</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:45%"></div></div>
+      </div>
+      <span class="chapter-tag">The Slip</span>
+      <span class="scene-art">😬</span>
+      <h2 class="scene-title">What You Said By Accident</h2>
+      <div class="story-text">
+        <p>Your brain short-circuits. What comes out of your mouth is:</p>
+        <p><em>"I noticed you too. You read books in the order of how sad they'll make you. García Márquez first, then Morrison, then the Mary Oliver because you need to end on something that still believes in the world."</em></p>
+        <p>Silence.</p>
+        <p>Jordan stares at you. You consider leaving the country.</p>
+        <p>Then they laugh — a real laugh, startled and delighted — and say: <em>"That is the most accurate thing anyone has ever said about me."</em></p>
+        <p>They pull out the chair across from you and sit down without being invited. They order two more coffees. And you talk for two hours about grief and beauty and why the world needs people who notice things.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('end-love')">
+          <span class="choice-icon">💞</span>
+          <span class="choice-text">You fall in love the way you read — quietly, then all at once. <em>Epilogue →</em></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ PATH C — Music ═══════ -->
+  <div class="scene" id="scene-s2c">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 2</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:25%"></div></div>
+      </div>
+      <span class="chapter-tag">Common Ground</span>
+      <span class="scene-art">🎸</span>
+      <h2 class="scene-title">The Band That Started Everything</h2>
+      <div class="story-text">
+        <p>You approach their table with a confidence that surprises you. <em>"Is that a Phoebe Bridgers shirt? I saw her in Bristol last summer — third row."</em></p>
+        <p>The stranger looks up and their whole face opens like a window.</p>
+        <p><em>"You were at Bristol? I was front row, standing. I cried during 'Moon Song' and I'm not even slightly embarrassed about it."</em></p>
+        <p>You laugh. They laugh. The café feels warmer.</p>
+        <p>Their name is <strong>Jordan</strong>. They play guitar badly and listen to music obsessively and believe, truly believe, that certain songs contain a kind of portable home — you carry them with you and they make wherever you are feel liveable.</p>
+        <p>You talk for an hour. They show you a playlist on their phone called <em>"songs for rainy tuesdays"</em> and your heart does something it hasn't done in a long time.</p>
+        <p>Then they ask: <em>"Do you want to go to a show? Friday. Small venue. This band you've probably never heard of, but I think you'll love them."</em></p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('s3c1')">
+          <span class="choice-icon">🎟️</span>
+          <span class="choice-text">Yes. Immediately yes.</span>
+        </button>
+        <button class="choice-btn" onclick="goto('s3c2')">
+          <span class="choice-icon">🤔</span>
+          <span class="choice-text">You hesitate. You have plans Friday. Then again — do those plans matter?</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-s3c1">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 3</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+      </div>
+      <span class="chapter-tag">Friday Night</span>
+      <span class="scene-art">🎶</span>
+      <h2 class="scene-title">Front Row</h2>
+      <div class="story-text">
+        <p>The venue is a basement with exposed brick and string lights and exactly forty-seven people who all look like they know something the rest of the city doesn't.</p>
+        <p>Jordan finds you in the crowd — <em>"You came!"</em> — like they weren't sure you would, and something about that uncertainty makes you want to prove every doubt wrong for the rest of your life.</p>
+        <p>The band is extraordinary. At the bridge of the third song, Jordan turns to you in the dark and says something but you can't hear it over the music. So they lean close — close enough that you can feel the warmth — and say it again into your ear:</p>
+        <p><em>"I'm really glad you talked to me in that coffee shop."</em></p>
+        <p>The song swells. The lights blur. You are completely and helplessly in trouble.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('end-love')">
+          <span class="choice-icon">✨</span>
+          <span class="choice-text">You lean closer. You stay for the encore. And every song after. <em>Epilogue →</em></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene" id="scene-s3c2">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 3</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
+      </div>
+      <span class="chapter-tag">The Detour</span>
+      <span class="scene-art">🔄</span>
+      <h2 class="scene-title">The Plans You Break</h2>
+      <div class="story-text">
+        <p>You hesitate. Jordan watches you. <em>"No pressure,"</em> they say, and mean it.</p>
+        <p>You cancel your plans. You text your friend: <em>Sorry, something came up.</em> Which is technically true.</p>
+        <p>But on Friday evening, stuck in a delayed tube, you're going to be late. You text Jordan: <em>Running behind, go in without me.</em></p>
+        <p>The reply: <em>"I'm outside. I can wait."</em></p>
+        <p>And they do. In the November cold, hands in pockets, breath making little clouds. When you finally arrive, breathless and apologising, Jordan just smiles and says: <em>"Told you I could wait."</em></p>
+        <p>Inside, the band plays a song you'll both claim as yours forever.</p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('end-love')">
+          <span class="choice-icon">🎵</span>
+          <span class="choice-text">Some people are worth being late for. Some people are worth everything. <em>Epilogue →</em></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ NEAR-MISS PATH ═══════ -->
+  <div class="scene" id="scene-s4a-miss">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Chapter 4</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+      </div>
+      <span class="chapter-tag">The Almost</span>
+      <span class="scene-art">📲</span>
+      <h2 class="scene-title">Unknown Number</h2>
+      <div class="story-text">
+        <p>Your phone buzzes. Unknown number.</p>
+        <p><em>"Hi. It's Jordan. I'm so sorry — my sister is worse than we thought. I'm at the hospital. I can't make it. I feel awful."</em></p>
+        <p>You exhale. Then: <em>"Don't feel awful. Be with your sister. I'll be here."</em></p>
+        <p>Three weeks pass. Jordan's sister recovers slowly. You text through all of it — small things, funny things, a photo of the café table you keep visiting. Jordan sends back photos from a hospital room gradually filling with plants and get-well cards.</p>
+        <p>One grey Wednesday, the café bell rings. Jordan walks in looking tired and bright-eyed and carrying something they've apparently been holding onto: a copy of <em>One Hundred Years of Solitude</em>, with a note tucked inside the front cover.</p>
+        <p>The note says: <em>"For someone who keeps the table warm. Thank you."</em></p>
+      </div>
+      <div class="choices">
+        <button class="choice-btn" onclick="goto('end-bittersweet')">
+          <span class="choice-icon">🌸</span>
+          <span class="choice-text">Some love stories take the long way. This one is just beginning. <em>Epilogue →</em></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ ENDINGS ═══════════════════ -->
+
+  <!-- Happy Ending -->
+  <div class="scene" id="scene-end-love">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Epilogue</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+      </div>
+      <span class="ending-badge happy">✦ The Happily Ever After</span>
+      <span class="scene-art">💍</span>
+      <h2 class="scene-title">Every Tuesday After</h2>
+      <div class="story-text">
+        <p>Here is what nobody tells you about falling in love with someone who reads: they will leave books open on your pillow. They will read you sentences in the dark that make you understand things you couldn't put words to before.</p>
+        <p>Jordan rearranges your bookshelf by emotional weight, not alphabetically, and you let them because they are almost always right about these things.</p>
+        <p>You still go to <em>Parchment & Brew</em> every Tuesday morning. The barista knows your order now — both of them, yours and Jordan's — and has them ready before you reach the counter.</p>
+        <p>Sometimes you look at the corner table and think about the rainy Tuesday when everything turned on a single glance, and how terrifyingly close you came to looking away.</p>
+        <p>You didn't. <em>That's the whole story.</em></p>
+        <p>That's everything.</p>
+      </div>
+      <div class="stats">
+        <span class="stat-chip">💛 Courage taken</span>
+        <span class="stat-chip">📚 Books exchanged</span>
+        <span class="stat-chip">☕ Coffees shared</span>
+      </div>
+      <button class="restart-btn" onclick="restart()">↩ Read Another Path</button>
+    </div>
+  </div>
+
+  <!-- Bittersweet Ending -->
+  <div class="scene" id="scene-end-bittersweet">
+    <div class="card">
+      <div class="progress-wrap">
+        <span class="progress-label">Epilogue</span>
+        <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+      </div>
+      <span class="ending-badge bittersweet">✦ The Beautiful Detour</span>
+      <span class="scene-art">🌷</span>
+      <h2 class="scene-title">Worth the Wait</h2>
+      <div class="story-text">
+        <p>Some love stories are not late. They are simply — honestly — taking the scenic route.</p>
+        <p>Jordan's sister recovers. Jordan calls the city home, which they say took longer than expected but faster than they'd thought possible. The café is half the reason. You are the other half.</p>
+        <p>You read <em>One Hundred Years of Solitude</em> together — aloud, in installments, on Sunday mornings. When you get to the part where Úrsula finally finishes the house, Jordan marks the page and looks at you with something quiet and enormous in their eyes.</p>
+        <p><em>"She always finishes,"</em> you say.</p>
+        <p><em>"She does,"</em> says Jordan. <em>"That's why I love her."</em></p>
+        <p>Later, you're not sure which one of you they were talking about.</p>
+        <p>Maybe that's the point.</p>
+      </div>
+      <div class="stats">
+        <span class="stat-chip">🌧️ Patience rewarded</span>
+        <span class="stat-chip">📖 Stories shared</span>
+        <span class="stat-chip">🌱 Worth every moment</span>
+      </div>
+      <button class="restart-btn" onclick="restart()">↩ Read Another Path</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+  // ── Petals ──
+  const canvas = document.getElementById('bgCanvas');
+  const colors = ['#f7c5c0','#f7d9b0','#d4c0f7','#c0d4f7','#f7c0d4'];
+  for (let i = 0; i < 28; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    p.style.cssText = `
+      left: ${Math.random()*100}vw;
+      top: ${Math.random()*-20}vh;
+      width: ${6 + Math.random()*10}px;
+      height: ${6 + Math.random()*10}px;
+      background: ${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration: ${7 + Math.random()*12}s;
+      animation-delay: ${Math.random()*10}s;
+    `;
+    canvas.appendChild(p);
+  }
+
+  // ── Navigation ──
+  function goto(id) {
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById('scene-' + id);
+    if (target) {
+      target.classList.add('active');
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function restart() {
+    goto('start');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+
+</body>
+</html>
